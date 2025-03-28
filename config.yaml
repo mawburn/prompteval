@@ -1,0 +1,21 @@
+promptsDir: "./prompts"
+outputDir: "./results"
+
+models:
+  - name: "gpt-4"
+    provider: "openai"
+    modelName: "gpt-4"
+    temperature: 0.7
+    maxTokens: 2000
+
+  - name: "claude-2"
+    provider: "anthropic"
+    modelName: "claude-2"
+    temperature: 0.7
+    maxTokens: 2000
+    proxyUrl: "https://your-proxy-url.com/v1"
+
+evaluationParams:
+  repeatCount: 3
+  concurrency: 2
+  timeoutSeconds: 60

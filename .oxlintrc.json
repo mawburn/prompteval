@@ -1,0 +1,41 @@
+{
+  "$schema": "https://oxc-project.github.io/schemas/oxlintrc.json",
+  "files": {
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "node_modules",
+      "dist",
+      "build"
+    ]
+  },
+  "plugins": {
+    "@oxlint/typescript": true
+  },
+  "rules": {
+    "suspicious": {
+      "noExplicitAny": "error",
+      "noPrototypeBuiltins": "error"
+    },
+    "correctness": {
+      "noUnusedVariables": "error",
+      "useExhaustiveDependencies": "error"
+    },
+    "style": {
+      "noNonNullAssertion": "error",
+      "useConst": "error",
+      "useTemplate": "error"
+    },
+    "performance": {
+      "noDelete": "error"
+    },
+    "security": {
+      "noDangerouslySetInnerHtml": "error"
+    }
+  },
+  "ignores": [
+    "**/*.js",
+    "**/*.d.ts"
+  ]
+}
