@@ -1,37 +1,63 @@
-import { ChatOpenAI } from '@langchain/openai'
-import { ChatAnthropic } from '@langchain/anthropic'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { OpenAI } from 'openai'
 import { ModelConfig } from './types'
 
-export function createLLMClient(modelConfig: ModelConfig): BaseChatModel {
-  const commonConfig = {
-    temperature: modelConfig.temperature,
-    maxTokens: modelConfig.maxTokens,
-    modelName: modelConfig.modelName,
+export class CustomLLMClient {
+  private client: OpenAI
+  private modelName: string
+  private temperature: number
+  private maxTokens?: number
+
+  constructor(modelConfig: ModelConfig) {
+    // Extract the base URL without the endpoint path
+    let baseURL = modelConfig.proxyUrl || ''
+    if (baseURL.endsWith('/chat/completions')) {
+      baseURL = baseURL.replace('/chat/completions', '')
+    }
+
+    console.log(`Creating custom LLM client for ${modelConfig.name}`)
+    console.log(`Original proxy URL: ${modelConfig.proxyUrl || 'none'}`)
+    console.log(`Adjusted base URL: ${baseURL}`)
+
+    // Create a direct OpenAI client with custom configuration
+    this.client = new OpenAI({
+      apiKey: modelConfig.apiKey || 'dummy-key',
+      baseURL: baseURL || undefined, // Use undefined if empty string
+      defaultHeaders: {
+        Authorization: `Bearer ${modelConfig.apiKey || 'dummy-key'}`,
+      },
+    })
+
+    this.modelName = modelConfig.modelName
+    this.temperature = modelConfig.temperature
+    this.maxTokens = modelConfig.maxTokens
   }
 
-  // If proxy URL is provided, use it for all providers
-  const clientOptions = modelConfig.proxyUrl
-    ? {
-        basePath: modelConfig.proxyUrl,
-        apiKey: modelConfig.apiKey || 'dummy-key',
+  async invoke(messages: { content: string }[]) {
+    try {
+      const formattedMessages = messages.map(msg => ({
+        role: 'user' as const,
+        content: msg.content,
+      }))
+
+      console.log(`Sending request to ${this.modelName}`)
+
+      const response = await this.client.chat.completions.create({
+        model: this.modelName,
+        messages: formattedMessages,
+        temperature: this.temperature,
+        max_tokens: this.maxTokens,
+      })
+
+      return {
+        content: response.choices[0].message.content || '',
       }
-    : { apiKey: modelConfig.apiKey }
-
-  switch (modelConfig.provider) {
-    case 'openai':
-      return new ChatOpenAI({
-        ...commonConfig,
-        ...clientOptions,
-      })
-
-    case 'anthropic':
-      return new ChatAnthropic({
-        ...commonConfig,
-        ...clientOptions,
-      })
-
-    default:
-      throw new Error(`Unsupported model provider: ${modelConfig.provider}`)
+    } catch (error) {
+      console.error('Error in custom LLM client:', error)
+      throw error
+    }
   }
+}
+
+export function createLLMClient(modelConfig: ModelConfig): CustomLLMClient {
+  return new CustomLLMClient(modelConfig)
 }

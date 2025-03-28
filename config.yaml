@@ -2,20 +2,18 @@ promptsDir: "./prompts"
 outputDir: "./results"
 
 models:
-  - name: "gpt-4"
+  - name: "claude-3-7-sonnet"
     provider: "openai"
-    modelName: "gpt-4"
-    temperature: 0.7
-    maxTokens: 2000
-
-  - name: "claude-2"
-    provider: "anthropic"
-    modelName: "claude-2"
-    temperature: 0.7
-    maxTokens: 2000
-    proxyUrl: "https://your-proxy-url.com/v1"
+    modelName: "anthropic:claude-3-7-sonnet"
+    temperature: 0.2
+    maxTokens: 5000
+  - name: "claude-3-7-sonnet"
+    provider: "openai"
+    modelName: "anthropic:claude-3-7-sonnet"
+    temperature: 0.1
+    maxTokens: 5000
 
 evaluationParams:
-  repeatCount: 3
+  repeatCount: 2
   concurrency: 2
   timeoutSeconds: 60

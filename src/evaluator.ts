@@ -1,6 +1,4 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { HumanMessage } from '@langchain/core/messages'
-import { AIMessage } from '@langchain/core/messages'
+// src/evaluator/evaluator.ts
 import fs from 'fs'
 import path from 'path'
 import {
@@ -9,10 +7,10 @@ import {
   ModelConfig,
   EvaluationParams,
 } from './types'
-import { createLLMClient } from './llm'
+import { createLLMClient, CustomLLMClient } from './llm'
 
 export class PromptEvaluator {
-  private models: Map<string, BaseChatModel> = new Map()
+  private models: Map<string, CustomLLMClient> = new Map()
 
   constructor(
     private modelConfigs: ModelConfig[],
@@ -38,8 +36,12 @@ export class PromptEvaluator {
         const startTime = Date.now()
 
         try {
+          console.log(
+            `Evaluating prompt "${prompt.id}" with model "${modelName}" (attempt ${i + 1}/${this.evaluationParams.repeatCount})`
+          )
+
           const response = await Promise.race([
-            model.invoke([new HumanMessage(prompt.content)]),
+            model.invoke([{ content: prompt.content }]),
             new Promise<never>((_, reject) =>
               setTimeout(
                 () => reject(new Error('Timeout')),
@@ -50,30 +52,34 @@ export class PromptEvaluator {
 
           const latencyMs = Date.now() - startTime
 
-          // Ensure response is an AIMessage
-          if (response instanceof AIMessage) {
-            results.push({
-              promptId: prompt.id,
-              modelName,
-              response: response.content.toString(),
-              latencyMs,
-              timestamp: new Date().toISOString(),
-            })
-          } else {
-            console.error(
-              `Unexpected response type for prompt ${prompt.id} with model ${modelName}`
-            )
-          }
+          console.log(`Successfully received response (${latencyMs}ms)`)
+
+          results.push({
+            promptId: prompt.id,
+            modelName,
+            response: response.content.toString(),
+            latencyMs,
+            timestamp: new Date().toISOString(),
+          })
         } catch (error) {
           console.error(
             `Error evaluating prompt ${prompt.id} with model ${modelName}:`,
             error
           )
+
+          // Add a failed result to the output
+          results.push({
+            promptId: prompt.id,
+            modelName,
+            response: `ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            latencyMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          })
         }
       }
     }
 
-    // Save results to file
+    // Save results to file even if some evaluations failed
     this.saveResults(prompt.id, results)
 
     return results

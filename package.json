@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node dist/index.js --config config.yaml",
+    "dev": "ts-node src/index.ts --config config.yaml",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -18,9 +20,12 @@
     "@langchain/core": "^0.3.43",
     "@langchain/openai": "^0.5.0",
     "commander": "^13.1.0",
-    "js-yaml": "^4.1.0"
+    "dotenv": "^16.4.7",
+    "js-yaml": "^4.1.0",
+    "openai": "^4.90.0"
   },
   "devDependencies": {
+    "@types/dotenv": "^8.2.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.13.14",
     "oxlint": "^0.16.3",
