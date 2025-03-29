@@ -7,7 +7,7 @@ import {
   EvaluationResult,
   ModelConfig,
   EvaluationParams,
-  SimilarityMatrix,
+  SimilarityScore,
 } from './types'
 import { createLLMClient, CustomLLMClient } from './llm'
 import {
@@ -132,37 +132,46 @@ export class PromptEvaluator {
       console.log(
         `Calculating similarities across ${this.allSuccessfulResults.length} successful responses...`
       )
-      const method = this.evaluationParams.similarityMethod || 'cosine'
-      const firstResult = this.allSuccessfulResults[0]
-
       similarityMatrix = {
-        method,
-        referenceId: firstResult.id,
-        comparisons: {} as Record<string, number>,
+        comparisons: {} as Record<string, SimilarityScore>,
       }
 
-      // Compare all pairs of results regardless of prompt
       console.log(
-        `Comparing all pairs among ${this.allSuccessfulResults.length} results...`
+        `Comparing all pairs among ${this.allSuccessfulResults.length} results using all similarity methods...`
       )
+
+      const methods: SimilarityMethod[] = ['cosine', 'jaccard', 'levenshtein']
 
       for (let i = 0; i < this.allSuccessfulResults.length; i++) {
         const resultA = this.allSuccessfulResults[i]
 
         for (let j = i + 1; j < this.allSuccessfulResults.length; j++) {
           const resultB = this.allSuccessfulResults[j]
+          const comparisonKey = `${resultA.id}_to_${resultB.id}`
 
-          const similarityScore = calculateTextSimilarity(
-            resultA.response,
-            resultB.response,
-            method as SimilarityMethod
+          const scores: SimilarityScore = {
+            cosine: 0,
+            jaccard: 0,
+            levenshtein: 0,
+            average: 0,
+          }
+
+          for (const method of methods) {
+            const score = calculateTextSimilarity(
+              resultA.response,
+              resultB.response,
+              method
+            )
+            scores[method] = Number(score.toFixed(5))
+          }
+
+          scores.average = Number(
+            ((scores.cosine + scores.jaccard + scores.levenshtein) / 3).toFixed(
+              5
+            )
           )
 
-          // Round the similarity score to 5 decimal places
-          const roundedScore = Number(similarityScore.toFixed(5))
-
-          const comparisonKey = `${resultA.id}_to_${resultB.id}`
-          similarityMatrix.comparisons[comparisonKey] = roundedScore
+          similarityMatrix.comparisons[comparisonKey] = scores
         }
       }
     }

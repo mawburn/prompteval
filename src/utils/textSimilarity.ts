@@ -2,7 +2,6 @@ export function calculateJaccardSimilarity(
   text1: string,
   text2: string
 ): number {
-  // Normalize input and split into words
   const words1 = new Set(
     text1
       .toLowerCase()
@@ -28,7 +27,6 @@ export function calculateCosineSimilarity(
   text1: string,
   text2: string
 ): number {
-  // Normalize and tokenize
   const tokens1 = text1
     .toLowerCase()
     .replace(/[^\w\s]/g, '')
@@ -40,12 +38,10 @@ export function calculateCosineSimilarity(
     .split(/\s+/)
     .filter(Boolean)
 
-  // Create term frequency vectors
   const allTokens = new Set([...tokens1, ...tokens2])
   const vector1: Record<string, number> = {}
   const vector2: Record<string, number> = {}
 
-  // Calculate term frequencies
   for (const token of tokens1) {
     vector1[token] = (vector1[token] || 0) + 1
   }
@@ -53,7 +49,6 @@ export function calculateCosineSimilarity(
     vector2[token] = (vector2[token] || 0) + 1
   }
 
-  // Calculate dot product
   let dotProduct = 0
   let magnitude1 = 0
   let magnitude2 = 0
@@ -70,12 +65,10 @@ export function calculateCosineSimilarity(
   magnitude1 = Math.sqrt(magnitude1)
   magnitude2 = Math.sqrt(magnitude2)
 
-  // Avoid division by zero
   if (magnitude1 === 0 || magnitude2 === 0) {
     return magnitude1 === magnitude2 ? 1 : 0
   }
 
-  // Return cosine similarity
   return dotProduct / (magnitude1 * magnitude2)
 }
 
@@ -83,12 +76,10 @@ function calculateLevenshteinDistance(text1: string, text2: string): number {
   const m = text1.length
   const n = text2.length
 
-  // Create a matrix of size (m+1) x (n+1)
   const d: number[][] = Array(m + 1)
     .fill(null)
     .map(() => Array(n + 1).fill(0))
 
-  // Initialize first row and column
   for (let i = 0; i <= m; i++) {
     d[i][0] = i
   }
@@ -96,14 +87,13 @@ function calculateLevenshteinDistance(text1: string, text2: string): number {
     d[0][j] = j
   }
 
-  // Fill the matrix
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       const cost = text1[i - 1] === text2[j - 1] ? 0 : 1
       d[i][j] = Math.min(
-        d[i - 1][j] + 1, // deletion
-        d[i][j - 1] + 1, // insertion
-        d[i - 1][j - 1] + cost // substitution
+        d[i - 1][j] + 1,
+        d[i][j - 1] + 1,
+        d[i - 1][j - 1] + cost
       )
     }
   }
@@ -121,7 +111,6 @@ export function calculateLevenshteinSimilarity(
   const distance = calculateLevenshteinDistance(text1, text2)
   const maxLength = Math.max(text1.length, text2.length)
 
-  // Normalize to get a similarity score
   return 1 - distance / maxLength
 }
 

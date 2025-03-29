@@ -36,38 +36,25 @@ promptsDir: "./prompts"
 outputDir: "./results"
 
 models:
-  - name: "claude-3-7-sonnet"
-    provider: "anthropic" # or "openai" if following the openai spec
+  - name: "claude-3-7-sonnet-temp0.2"
+    provider: "openai"
     modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.2
     maxTokens: 5000
-  - name: "gpt-4"
+  - name: "claude-3-7-sonnet-temp0.1" 
     provider: "openai"
-    modelName: "gpt-4"
+    modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.1
-    maxTokens: 2000
+    maxTokens: 5000
 
 evaluationParams:
-  repeatCount: 2
+  repeatCount: 1
   concurrency: 2
   timeoutSeconds: 60
-  # Optional parameters with defaults:
-  # compareSimilarity: true  # Set to false to disable similarity comparison
-  # similarityMethod: cosine  # Options: cosine, jaccard, levenshtein
-
-# Similarity method configuration
-# --------------------------------
-# To specify which similarity algorithm to use, add the similarityMethod parameter:
-#
-# evaluationParams:
-#   # ... other parameters
-#   similarityMethod: jaccard  # Use Jaccard similarity
-#
-# Available options:
-# - cosine: Best for semantic comparison of longer texts (default)
-# - jaccard: Best for comparing topic and concept coverage
-# - levenshtein: Best for detecting minor textual variations
+  compareSimilarity: true
 ```
+
+Note: Model names must be unique, and all three similarity methods (cosine, jaccard, levenshtein) are calculated for each comparison.
 
 ### Environment Variables
 
@@ -117,24 +104,31 @@ Each result includes:
 - Response text
 - Latency in milliseconds
 - Timestamp
+- Temperature value used for generation
 - Optional token usage statistics
 
 ### Similarity Matrix
 A single combined similarity matrix at the root level:
 - Contains similarity comparisons between ALL responses across ALL prompts
 - Includes:
-  - Reference response ID (identifies the first successful response processed)
-  - Similarity method used (cosine, jaccard, or levenshtein)
-  - Complete flat comparison structure with cross-prompt comparisons
+  - Complete comparison structure with cross-prompt comparisons
   - Comparisons use keys in the format: `responseA_id_to_responseB_id`
+  - Each comparison includes scores for all similarity methods:
+    ```json
+    "ezcsy_to_n5pb3": {
+      "cosine": 0.60573,
+      "jaccard": 0.82123,
+      "levenshtein": 0.91000
+    }
+    ```
 - Each pair of responses is compared only once (no redundant calculations)
 - Self-comparisons (with score 1.0) are not included
 
 #### Similarity Methods
 
-The evaluator supports three text similarity algorithms:
+The evaluator calculates all three text similarity algorithms for each comparison:
 
-**Cosine Similarity** (default)
+**Cosine Similarity**
 - Represents texts as word frequency vectors and measures the cosine of the angle between them
 - Focuses on word frequency patterns rather than exact matches
 - Scores range from 0 (completely different) to 1 (identical)

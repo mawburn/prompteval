@@ -44,10 +44,16 @@ export interface EvaluationResult {
   timestamp: string
 }
 
+export interface SimilarityScore {
+  cosine: number
+  jaccard: number
+  levenshtein: number
+  average: number
+  [key: string]: number // Allow indexing with a string key
+}
+
 export interface SimilarityMatrix {
-  method: string
-  referenceId: string
   comparisons: {
-    [resultId: string]: number
+    [resultId: string]: SimilarityScore
   }
 }
