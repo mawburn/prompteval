@@ -99,6 +99,7 @@ describe('CustomLLMClient', () => {
       messages: [{ role: 'user', content: 'Hello, world! This is a test prompt.' }],
       temperature: 0.7,
       max_tokens: 1000,
+      user: expect.stringContaining('bypass_cache_'),
     })
     
     expect(response.content).toBe('This is a mock response')
@@ -160,7 +161,8 @@ describe('CustomLLMClient', () => {
       
       expect(createCompletionMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          messages: [{ role: 'user', content }]
+          messages: [{ role: 'user', content }],
+          user: expect.stringContaining('bypass_cache_')
         })
       )
       
@@ -185,7 +187,8 @@ describe('CustomLLMClient', () => {
     
     expect(createCompletionMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        [expectedProperty]: expectedValue
+        [expectedProperty]: expectedValue,
+        user: expect.stringContaining('bypass_cache_')
       })
     )
   })
@@ -199,6 +202,20 @@ describe('CustomLLMClient', () => {
     
     expect(response.tokenUsage.prompt).toBeGreaterThan(0)
     expect(response.tokenUsage.response).toBeGreaterThan(0)
+  })
+  
+  it('should add unique timestamp to user field to bypass caching', async () => {
+    const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(12345678)
+    
+    await llmClient.invoke([{ content: 'Test cache bypass' }])
+    
+    expect(createCompletionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user: 'bypass_cache_12345678'
+      })
+    )
+    
+    dateSpy.mockRestore()
   })
 })
 

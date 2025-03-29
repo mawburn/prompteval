@@ -31,7 +31,7 @@ async function main() {
     console.log('Starting evaluation...')
     await evaluator.evaluateAllPrompts(prompts)
     console.log(`Evaluation complete. Results saved to ${config.outputDir}`)
-    
+
     process.exit(0)
   } catch (error) {
     if (error instanceof Error) {

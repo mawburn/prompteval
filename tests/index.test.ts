@@ -83,7 +83,7 @@ describe('CLI Tool', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith('Starting evaluation...')
     expect(consoleLogSpy).toHaveBeenCalledWith('Evaluation complete. Results saved to ./results')
     
-    expect(processExitSpy).not.toHaveBeenCalled()
+    expect(processExitSpy).toHaveBeenCalledWith(0)
   })
 
   it.each([

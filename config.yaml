@@ -12,6 +12,11 @@ models:
     modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.1
     maxTokens: 5000
+  - name: "claude-3-7-sonnet-temp0"
+    provider: "openai"
+    modelName: "anthropic:claude-3-7-sonnet"
+    temperature: 0.0
+    maxTokens: 5000
 
 evaluationParams:
   repeatCount: 2

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt Evaluation Results</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Prompt Evaluation Results</h1>
+    
+    <div class="controls">
+      <label for="result-select">Select Result File:</label>
+      <select id="result-select"></select>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab-button active" data-tab="results">Results</button>
+      <button class="tab-button" data-tab="similarity">Similarity Matrix</button>
+    </div>
+    
+    <div id="results-container" class="tab-content active" data-tab="results">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Prompt</th>
+            <th>Response</th>
+          </tr>
+        </thead>
+        <tbody id="results-body">
+        </tbody>
+      </table>
+    </div>
+    
+    <div id="similarity-container" class="tab-content" data-tab="similarity">
+      <div class="matrix-controls">
+        <label for="similarity-method">Similarity Method:</label>
+        <select id="similarity-method">
+          <option value="average">Average</option>
+          <option value="cosine">Cosine</option>
+          <option value="jaccard">Jaccard</option>
+          <option value="levenshtein">Levenshtein</option>
+        </select>
+      </div>
+      <div id="similarity-matrix"></div>
+    </div>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>
