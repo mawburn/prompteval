@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js --config config.yaml",
-    "dev": "ts-node src/index.ts --config config.yaml",
+    "compare": "ts-node src/index.ts --config config.yaml",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "prettier --write \"src/**/*.ts\"",

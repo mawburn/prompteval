@@ -16,25 +16,23 @@ async function main() {
   const options = program.opts()
 
   try {
-    // Load configuration
     const config = loadConfig(options.config)
     console.log(`Loaded configuration with ${config.models.length} models`)
 
-    // Load prompts
     const prompts = await loadPrompts(config.promptsDir)
     console.log(`Loaded ${prompts.length} prompts from ${config.promptsDir}`)
 
-    // Initialize evaluator
     const evaluator = new PromptEvaluator(
       config.models,
       config.evaluationParams,
       config.outputDir
     )
 
-    // Run evaluation
     console.log('Starting evaluation...')
     await evaluator.evaluateAllPrompts(prompts)
     console.log(`Evaluation complete. Results saved to ${config.outputDir}`)
+    
+    process.exit(0)
   } catch (error) {
     if (error instanceof Error) {
       console.error(`Error: ${error.message}`)
