@@ -1,28 +1,34 @@
-// src/evaluator/evaluator.ts
 import fs from 'fs'
 import path from 'path'
+import { nanoid } from 'nanoid'
+import { format } from 'date-fns'
 import {
   Prompt,
   EvaluationResult,
   ModelConfig,
   EvaluationParams,
+  SimilarityMatrix,
 } from './types'
 import { createLLMClient, CustomLLMClient } from './llm'
+import {
+  calculateTextSimilarity,
+  SimilarityMethod,
+} from './utils/textSimilarity'
 
 export class PromptEvaluator {
   private models: Map<string, CustomLLMClient> = new Map()
+  private allResults: Map<string, {results: EvaluationResult[], similarityMatrix: SimilarityMatrix | null}> = new Map()
+  private evaluationStartTime = new Date()
 
   constructor(
     private modelConfigs: ModelConfig[],
     private evaluationParams: EvaluationParams,
     private outputDir: string
   ) {
-    // Initialize models
     for (const config of modelConfigs) {
       this.models.set(config.name, createLLMClient(config))
     }
 
-    // Ensure output directory exists
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true })
     }
@@ -55,6 +61,7 @@ export class PromptEvaluator {
           console.log(`Successfully received response (${latencyMs}ms)`)
 
           results.push({
+            id: nanoid(),
             promptId: prompt.id,
             modelName,
             response: response.content.toString(),
@@ -67,8 +74,8 @@ export class PromptEvaluator {
             error
           )
 
-          // Add a failed result to the output
           results.push({
+            id: nanoid(),
             promptId: prompt.id,
             modelName,
             response: `ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -79,24 +86,102 @@ export class PromptEvaluator {
       }
     }
 
-    // Save results to file even if some evaluations failed
-    this.saveResults(prompt.id, results)
+    const compareSimilarity = this.evaluationParams.compareSimilarity !== false
+    let similarityMatrix = null
+    if (compareSimilarity) {
+      similarityMatrix = this.calculateSimilarities(results)
+    }
+
+    this.allResults.set(prompt.id, {
+      results,
+      similarityMatrix
+    })
 
     return results
+  }
+
+  private calculateSimilarities(
+    results: EvaluationResult[]
+  ): SimilarityMatrix | null {
+    const successfulResults = results.filter(
+      r => !r.response.startsWith('ERROR:')
+    )
+    if (successfulResults.length < 2) {
+      console.log('Not enough successful responses to compare similarity')
+      return null
+    }
+
+    const method = this.evaluationParams.similarityMethod || 'cosine'
+    console.log(`Calculating ${method} similarity between responses...`)
+
+    const reference = successfulResults[0]
+
+    const similarityMatrix: SimilarityMatrix = {
+      method: method,
+      referenceId: reference.id,
+      comparisons: {},
+    }
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i]
+
+      if (result.response.startsWith('ERROR:')) continue
+
+      if (result.id === reference.id) {
+        similarityMatrix.comparisons[result.id] = 1.0
+        continue
+      }
+
+      const similarityScore = calculateTextSimilarity(
+        reference.response,
+        result.response,
+        method as SimilarityMethod
+      )
+
+      similarityMatrix.comparisons[result.id] = similarityScore
+
+      console.log(
+        `Similarity between "${reference.modelName}" and "${result.modelName}": ${similarityScore.toFixed(4)}`
+      )
+    }
+
+    return similarityMatrix
   }
 
   async evaluateAllPrompts(prompts: Prompt[]): Promise<void> {
     const concurrency = this.evaluationParams.concurrency
 
-    // Process prompts in batches based on concurrency
     for (let i = 0; i < prompts.length; i += concurrency) {
       const batch = prompts.slice(i, i + concurrency)
       await Promise.all(batch.map(prompt => this.evaluatePrompt(prompt)))
     }
+    
+    this.saveAllResults()
   }
 
-  private saveResults(promptId: string, results: EvaluationResult[]): void {
-    const outputPath = path.join(this.outputDir, `${promptId}-results.json`)
-    fs.writeFileSync(outputPath, JSON.stringify(results, null, 2))
+  private saveAllResults(): void {
+    const evaluationResults: Record<string, {results: EvaluationResult[], similarityMatrix: SimilarityMatrix | null}> = {}
+    
+    for (const [promptId, data] of this.allResults.entries()) {
+      evaluationResults[promptId] = data
+    }
+    
+    const timestamp = format(this.evaluationStartTime, "yyyyMMdd'T'HHmmss")
+    const filename = `results-${timestamp}.json`
+    const outputPath = path.join(this.outputDir, filename)
+    
+    const outputData = {
+      prompts: evaluationResults,
+      metadata: {
+        evaluatedAt: new Date().toISOString(),
+        startedAt: this.evaluationStartTime.toISOString(),
+        promptCount: this.allResults.size,
+        modelCount: this.modelConfigs.length,
+        repeatCount: this.evaluationParams.repeatCount
+      }
+    }
+    
+    console.log(`Saving all results to ${outputPath}`)
+    fs.writeFileSync(outputPath, JSON.stringify(outputData, null, 2))
   }
 }

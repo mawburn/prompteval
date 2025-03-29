@@ -19,6 +19,8 @@ export interface EvaluationParams {
   repeatCount: number
   concurrency: number
   timeoutSeconds: number
+  compareSimilarity?: boolean
+  similarityMethod?: 'jaccard' | 'cosine' | 'levenshtein'
 }
 
 export interface Prompt {
@@ -28,6 +30,7 @@ export interface Prompt {
 }
 
 export interface EvaluationResult {
+  id: string
   promptId: string
   modelName: string
   response: string
@@ -38,4 +41,12 @@ export interface EvaluationResult {
     total: number
   }
   timestamp: string
+}
+
+export interface SimilarityMatrix {
+  method: string
+  referenceId: string
+  comparisons: {
+    [resultId: string]: number
+  }
 }
