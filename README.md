@@ -99,21 +99,14 @@ Pairwise comparisons between responses showing:
 ### Metadata
 Evaluation timestamps, prompt count, model count, and configuration details.
 
-## Technical Implementation
-
-- OpenAI API client for model integration
-- js-tiktoken for accurate token counting
-- Multiple similarity algorithms
-- Concurrent processing for better performance
-
 ## Development
 
 ```bash
 pnpm run lint        # Check code
-pnpm run lint:fix    # Fix issues
+pnpm run lint:fix     # Fix issues
 pnpm run format      # Format code
 pnpm run typecheck   # Check types
-pnpm test           # Run tests
-pnpm test:watch     # Run tests in watch mode
-pnpm test:coverage  # Run tests with coverage
+pnpm test            # Run tests
+pnpm test:watch      # Run tests in watch mode
+pnpm test:coverage   # Run tests with coverage
 ```

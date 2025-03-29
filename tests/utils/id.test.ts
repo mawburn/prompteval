@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateId } from '../../src/utils/id'
+import { generateId } from '@src/utils/id'
 
 describe('ID Generator', () => {
   it('should generate a string ID', () => {
@@ -7,20 +7,61 @@ describe('ID Generator', () => {
     expect(typeof id).toBe('string')
   })
 
-  it('should generate unique IDs', () => {
-    const id1 = generateId()
-    const id2 = generateId()
-    const id3 = generateId()
+  it.each([
+    { count: 3, description: 'a few' },
+    { count: 10, description: 'several' },
+    { count: 20, description: 'many' }
+  ])('should generate $description IDs of consistent length and uniqueness', ({ count }) => {
+    const ids = Array(count).fill(0).map(() => generateId())
     
-    expect(id1).not.toBe(id2)
-    expect(id1).not.toBe(id3)
-    expect(id2).not.toBe(id3)
+    const length = ids[0].length
+    ids.forEach(id => {
+      expect(id.length).toBe(length)
+    })
+    
+    const uniqueIds = new Set(ids)
+    expect(uniqueIds.size).toBe(count)
   })
 
-  it('should generate IDs of consistent length', () => {
-    const ids = Array(10).fill(null).map(() => generateId())
-    const lengths = new Set(ids.map(id => id.length))
+  it('should generate IDs with good distribution properties', () => {
+    const sampleSize = 50
+    const ids = Array(sampleSize).fill(0).map(() => generateId())
     
-    expect(lengths.size).toBe(1)
+    const positions = Array(ids[0].length).fill(0).map(() => new Set())
+    
+    for (const id of ids) {
+      for (let i = 0; i < id.length; i++) {
+        positions[i].add(id[i])
+      }
+    }
+    
+    for (const positionChars of positions) {
+      expect(positionChars.size).toBeGreaterThan(3)
+    }
+    
+    const uniqueCount = new Set(ids).size
+    expect(uniqueCount / sampleSize).toBeGreaterThan(0.95)
+  })
+  
+  it('should handle edge cases gracefully', () => {
+    expect(() => generateId()).not.toThrow()
+    
+    const repeatedGeneration = () => {
+      for (let i = 0; i < 100; i++) {
+        generateId()
+      }
+    }
+    
+    expect(repeatedGeneration).not.toThrow()
+  })
+  
+  it('should not generate IDs with invalid characters', () => {
+    const sampleSize = 50
+    const invalidChars = /[^a-zA-Z0-9]/
+    
+    for (let i = 0; i < sampleSize; i++) {
+      const id = generateId()
+      expect(id).not.toMatch(invalidChars)
+    }
   })
 })

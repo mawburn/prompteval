@@ -13,6 +13,7 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:fast": "vitest run --threads 4 --maxWorkers 5 --minWorkers 1",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

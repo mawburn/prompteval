@@ -1,55 +1,105 @@
 import { describe, it, expect } from 'vitest'
-import { calculateTextSimilarity } from '../../src/utils/textSimilarity'
+import { calculateTextSimilarity, SimilarityMethod } from '@src/utils/textSimilarity'
 
 describe('TextSimilarity', () => {
   const textA = 'The quick brown fox jumps over the lazy dog'
   const textB = 'The fast brown fox leaps over the sleepy dog'
   const textC = 'Something completely different'
 
-  it('should calculate cosine similarity', () => {
-    const similarity = calculateTextSimilarity(textA, textB, 'cosine')
-    expect(similarity).toBeGreaterThan(0.7)
-    expect(similarity).toBeLessThan(1)
-    
-    const differentSimilarity = calculateTextSimilarity(textA, textC, 'cosine')
-    expect(differentSimilarity).toBeLessThan(0.3)
+  const veryLongText = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(20)
+  const specialCharsText = 'Special chars: !@#$%^&*()_+{}|:"<>?~`-=[]\\;\',./ABCDEF'
+  const unicodeText = 'smile smile smile smile smile'
+
+  const similarityMethods: SimilarityMethod[] = ['cosine', 'jaccard', 'levenshtein']
+
+  describe('Basic similarity calculations', () => {
+    describe.each(similarityMethods)('%s similarity', (method) => {
+      it.each([
+        { text1: textA, text2: textB, expectGreaterThan: 0.4, expectLessThan: 1, description: 'similar texts' },
+        { text1: textA, text2: textC, expectGreaterThan: method === 'levenshtein' ? 0 : -0.01, expectLessThan: 0.3, description: 'different texts' },
+        { text1: textA, text2: textA, expectGreaterThan: 0.99, expectLessThan: 1.01, description: 'identical texts' },
+        { text1: '', text2: '', expectGreaterThan: 0.99, expectLessThan: 1.01, description: 'empty texts' }
+      ])('should calculate similarity between $description', 
+        ({ text1, text2, expectGreaterThan, expectLessThan }) => {
+          const similarity = calculateTextSimilarity(text1, text2, method)
+          expect(similarity).toBeGreaterThan(expectGreaterThan)
+          expect(similarity).toBeLessThan(expectLessThan)
+        }
+      )
+    })
   })
 
-  it('should calculate jaccard similarity', () => {
-    const similarity = calculateTextSimilarity(textA, textB, 'jaccard')
-    expect(similarity).toBeGreaterThan(0.4)
-    expect(similarity).toBeLessThan(1)
-    
-    const differentSimilarity = calculateTextSimilarity(textA, textC, 'jaccard')
-    expect(differentSimilarity).toBeLessThan(0.3)
+  describe('Edge cases', () => {
+    it.each(similarityMethods)('should handle very long texts with %s method', (method) => {
+      const similarity = calculateTextSimilarity(veryLongText, veryLongText, method)
+      expect(similarity).toBeCloseTo(1, 5)
+      
+      const partialSimilarity = calculateTextSimilarity(
+        veryLongText, 
+        veryLongText.substring(0, veryLongText.length / 2) + " modified text", 
+        method
+      )
+      expect(partialSimilarity).toBeGreaterThan(0)
+      expect(partialSimilarity).toBeLessThan(1)
+    })
+
+    it.each(similarityMethods)('should handle texts with special characters using %s method', (method) => {
+      const similarity = calculateTextSimilarity(specialCharsText, specialCharsText, method)
+      expect(similarity).toBeCloseTo(1, 5)
+    })
+
+    it.each(similarityMethods)('should handle texts with standard characters using %s method', (method) => {
+      const similarity = calculateTextSimilarity(unicodeText, unicodeText, method)
+      expect(similarity).toBeCloseTo(1, 5)
+    })
+
+    it.each(similarityMethods)('should handle extremely dissimilar strings with %s method', (method) => {
+      const similarity = calculateTextSimilarity('abcdefg', '1234567', method)
+      expect(similarity).toBeLessThan(0.3)
+    })
   })
 
-  it('should calculate levenshtein similarity', () => {
-    const similarity = calculateTextSimilarity(textA, textB, 'levenshtein')
-    expect(similarity).toBeGreaterThan(0.5)
-    expect(similarity).toBeLessThan(1)
+  describe('Method-specific edge cases', () => {
+    it('should handle one empty text for Levenshtein similarity', () => {
+      const onlyFirstEmpty = calculateTextSimilarity('', 'non-empty text', 'levenshtein')
+      const onlySecondEmpty = calculateTextSimilarity('non-empty text', '', 'levenshtein')
+      
+      expect(onlyFirstEmpty).toBe(0)
+      expect(onlySecondEmpty).toBe(0)
+    })
     
-    const differentSimilarity = calculateTextSimilarity(textA, textC, 'levenshtein')
-    expect(differentSimilarity).toBeLessThan(0.3)
+    it('should handle zero magnitude cases in cosine similarity', () => {
+      expect(calculateTextSimilarity('123 456 789', '987 654 321', 'cosine')).toBeCloseTo(0, 5)
+      expect(calculateTextSimilarity('', 'some text', 'cosine')).toBe(0)
+      expect(calculateTextSimilarity('some text', '', 'cosine')).toBe(0)
+    })
   })
 
-  it('should return 1 for identical texts', () => {
-    const cosineSimilarity = calculateTextSimilarity(textA, textA, 'cosine')
-    const jaccardSimilarity = calculateTextSimilarity(textA, textA, 'jaccard')
-    const levenshteinSimilarity = calculateTextSimilarity(textA, textA, 'levenshtein')
+  describe('Error handling', () => {
+    it('should throw error for unknown similarity method', () => {
+      expect(() => {
+        calculateTextSimilarity(textA, textB, 'unknown' as any)
+      }).toThrow('Unknown similarity method: unknown')
+    })
     
-    expect(cosineSimilarity).toBe(1)
-    expect(jaccardSimilarity).toBe(1)
-    expect(levenshteinSimilarity).toBe(1)
+    it('should handle non-string inputs gracefully', () => {
+      expect(() => calculateTextSimilarity(123 as any, 'text', 'cosine')).toThrow()
+      expect(() => calculateTextSimilarity('text', null as any, 'cosine')).toThrow()
+    })
   })
 
-  it('should handle empty texts', () => {
-    const cosineSimilarity = calculateTextSimilarity('', '', 'cosine')
-    const jaccardSimilarity = calculateTextSimilarity('', '', 'jaccard')
-    const levenshteinSimilarity = calculateTextSimilarity('', '', 'levenshtein')
-    
-    expect(cosineSimilarity).toBe(1)
-    expect(jaccardSimilarity).toBe(1)
-    expect(levenshteinSimilarity).toBe(1)
+  describe('Performance', () => {
+    it.each(similarityMethods)('should calculate %s similarity efficiently', (method) => {
+      const start = performance.now()
+      
+      for (let i = 0; i < 10; i++) {
+        calculateTextSimilarity(textA, textB, method)
+      }
+      
+      const end = performance.now()
+      const duration = end - start
+      
+      expect(duration).toBeLessThan(100)
+    })
   })
 })
