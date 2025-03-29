@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { nanoid } from 'nanoid'
+import { generateId } from './utils/id'
 import { format } from 'date-fns'
 import {
   Prompt,
@@ -16,8 +16,9 @@ import {
 } from './utils/textSimilarity'
 
 export class PromptEvaluator {
-  private models: Map<string, CustomLLMClient> = new Map()
-  private allResults: Map<string, {results: EvaluationResult[], similarityMatrix: SimilarityMatrix | null}> = new Map()
+  private models: Array<{ config: ModelConfig; client: CustomLLMClient }> = []
+  private allResults: Map<string, EvaluationResult[]> = new Map()
+  private allSuccessfulResults: EvaluationResult[] = []
   private evaluationStartTime = new Date()
 
   constructor(
@@ -26,7 +27,10 @@ export class PromptEvaluator {
     private outputDir: string
   ) {
     for (const config of modelConfigs) {
-      this.models.set(config.name, createLLMClient(config))
+      this.models.push({
+        config,
+        client: createLLMClient(config),
+      })
     }
 
     if (!fs.existsSync(outputDir)) {
@@ -37,7 +41,9 @@ export class PromptEvaluator {
   async evaluatePrompt(prompt: Prompt): Promise<EvaluationResult[]> {
     const results: EvaluationResult[] = []
 
-    for (const [modelName, model] of this.models.entries()) {
+    for (const { config, client } of this.models) {
+      const modelName = config.name
+
       for (let i = 0; i < this.evaluationParams.repeatCount; i++) {
         const startTime = Date.now()
 
@@ -47,7 +53,7 @@ export class PromptEvaluator {
           )
 
           const response = await Promise.race([
-            model.invoke([{ content: prompt.content }]),
+            client.invoke([{ content: prompt.content }]),
             new Promise<never>((_, reject) =>
               setTimeout(
                 () => reject(new Error('Timeout')),
@@ -61,11 +67,12 @@ export class PromptEvaluator {
           console.log(`Successfully received response (${latencyMs}ms)`)
 
           results.push({
-            id: nanoid(),
+            id: generateId(),
             promptId: prompt.id,
             modelName,
             response: response.content.toString(),
             latencyMs,
+            temperature: config.temperature,
             timestamp: new Date().toISOString(),
           })
         } catch (error) {
@@ -75,79 +82,27 @@ export class PromptEvaluator {
           )
 
           results.push({
-            id: nanoid(),
+            id: generateId(),
             promptId: prompt.id,
             modelName,
             response: `ERROR: ${error instanceof Error ? error.message : 'Unknown error'}`,
             latencyMs: Date.now() - startTime,
+            temperature: config.temperature,
             timestamp: new Date().toISOString(),
           })
         }
       }
     }
 
-    const compareSimilarity = this.evaluationParams.compareSimilarity !== false
-    let similarityMatrix = null
-    if (compareSimilarity) {
-      similarityMatrix = this.calculateSimilarities(results)
-    }
-
-    this.allResults.set(prompt.id, {
-      results,
-      similarityMatrix
-    })
-
-    return results
-  }
-
-  private calculateSimilarities(
-    results: EvaluationResult[]
-  ): SimilarityMatrix | null {
     const successfulResults = results.filter(
       r => !r.response.startsWith('ERROR:')
     )
-    if (successfulResults.length < 2) {
-      console.log('Not enough successful responses to compare similarity')
-      return null
-    }
+    this.allSuccessfulResults.push(...successfulResults)
 
-    const method = this.evaluationParams.similarityMethod || 'cosine'
-    console.log(`Calculating ${method} similarity between responses...`)
+    this.allResults.set(prompt.id, results)
 
-    const reference = successfulResults[0]
-
-    const similarityMatrix: SimilarityMatrix = {
-      method: method,
-      referenceId: reference.id,
-      comparisons: {},
-    }
-
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i]
-
-      if (result.response.startsWith('ERROR:')) continue
-
-      if (result.id === reference.id) {
-        similarityMatrix.comparisons[result.id] = 1.0
-        continue
-      }
-
-      const similarityScore = calculateTextSimilarity(
-        reference.response,
-        result.response,
-        method as SimilarityMethod
-      )
-
-      similarityMatrix.comparisons[result.id] = similarityScore
-
-      console.log(
-        `Similarity between "${reference.modelName}" and "${result.modelName}": ${similarityScore.toFixed(4)}`
-      )
-    }
-
-    return similarityMatrix
+    return results
   }
-
   async evaluateAllPrompts(prompts: Prompt[]): Promise<void> {
     const concurrency = this.evaluationParams.concurrency
 
@@ -155,32 +110,75 @@ export class PromptEvaluator {
       const batch = prompts.slice(i, i + concurrency)
       await Promise.all(batch.map(prompt => this.evaluatePrompt(prompt)))
     }
-    
+
     this.saveAllResults()
   }
 
   private saveAllResults(): void {
-    const evaluationResults: Record<string, {results: EvaluationResult[], similarityMatrix: SimilarityMatrix | null}> = {}
-    
-    for (const [promptId, data] of this.allResults.entries()) {
-      evaluationResults[promptId] = data
+    const evaluationResults: Record<string, EvaluationResult[]> = {}
+
+    for (const [promptId, results] of this.allResults.entries()) {
+      evaluationResults[promptId] = results
     }
-    
+
     const timestamp = format(this.evaluationStartTime, "yyyyMMdd'T'HHmmss")
     const filename = `results-${timestamp}.json`
     const outputPath = path.join(this.outputDir, filename)
-    
+
+    let similarityMatrix = null
+
+    const compareSimilarity = this.evaluationParams.compareSimilarity !== false
+    if (compareSimilarity && this.allSuccessfulResults.length >= 2) {
+      console.log(
+        `Calculating similarities across ${this.allSuccessfulResults.length} successful responses...`
+      )
+      const method = this.evaluationParams.similarityMethod || 'cosine'
+      const firstResult = this.allSuccessfulResults[0]
+
+      similarityMatrix = {
+        method,
+        referenceId: firstResult.id,
+        comparisons: {} as Record<string, number>,
+      }
+
+      // Compare all pairs of results regardless of prompt
+      console.log(
+        `Comparing all pairs among ${this.allSuccessfulResults.length} results...`
+      )
+
+      for (let i = 0; i < this.allSuccessfulResults.length; i++) {
+        const resultA = this.allSuccessfulResults[i]
+
+        for (let j = i + 1; j < this.allSuccessfulResults.length; j++) {
+          const resultB = this.allSuccessfulResults[j]
+
+          const similarityScore = calculateTextSimilarity(
+            resultA.response,
+            resultB.response,
+            method as SimilarityMethod
+          )
+
+          // Round the similarity score to 5 decimal places
+          const roundedScore = Number(similarityScore.toFixed(5))
+
+          const comparisonKey = `${resultA.id}_to_${resultB.id}`
+          similarityMatrix.comparisons[comparisonKey] = roundedScore
+        }
+      }
+    }
+
     const outputData = {
       prompts: evaluationResults,
+      similarityMatrix,
       metadata: {
         evaluatedAt: new Date().toISOString(),
         startedAt: this.evaluationStartTime.toISOString(),
         promptCount: this.allResults.size,
         modelCount: this.modelConfigs.length,
-        repeatCount: this.evaluationParams.repeatCount
-      }
+        repeatCount: this.evaluationParams.repeatCount,
+      },
     }
-    
+
     console.log(`Saving all results to ${outputPath}`)
     fs.writeFileSync(outputPath, JSON.stringify(outputData, null, 2))
   }

@@ -35,6 +35,7 @@ export interface EvaluationResult {
   modelName: string
   response: string
   latencyMs: number
+  temperature?: number
   tokenUsage?: {
     prompt: number
     completion: number

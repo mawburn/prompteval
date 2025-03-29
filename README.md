@@ -58,11 +58,11 @@ evaluationParams:
 # Similarity method configuration
 # --------------------------------
 # To specify which similarity algorithm to use, add the similarityMethod parameter:
-# 
+#
 # evaluationParams:
 #   # ... other parameters
 #   similarityMethod: jaccard  # Use Jaccard similarity
-# 
+#
 # Available options:
 # - cosine: Best for semantic comparison of longer texts (default)
 # - jaccard: Best for comparing topic and concept coverage
@@ -108,9 +108,8 @@ Results are saved to the configured output directory as a single timestamped JSO
 The output file contains:
 
 ### Prompts
-Results organized by prompt ID, each containing:
+Results organized by prompt ID, each containing arrays of evaluation results.
 
-#### Results Array
 Each result includes:
 - Unique ID (generated with nanoid)
 - Prompt ID
@@ -120,13 +119,18 @@ Each result includes:
 - Timestamp
 - Optional token usage statistics
 
-#### Similarity Matrix
-A comprehensive similarity analysis between all responses:
-- Reference response ID
-- Similarity method used (cosine, jaccard, or levenshtein)
-- Comparison scores for all responses
+### Similarity Matrix
+A single combined similarity matrix at the root level:
+- Contains similarity comparisons between ALL responses across ALL prompts
+- Includes:
+  - Reference response ID (identifies the first successful response processed)
+  - Similarity method used (cosine, jaccard, or levenshtein)
+  - Complete flat comparison structure with cross-prompt comparisons
+  - Comparisons use keys in the format: `responseA_id_to_responseB_id`
+- Each pair of responses is compared only once (no redundant calculations)
+- Self-comparisons (with score 1.0) are not included
 
-##### Similarity Methods
+#### Similarity Methods
 
 The evaluator supports three text similarity algorithms:
 

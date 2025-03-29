@@ -2,18 +2,18 @@ promptsDir: "./prompts"
 outputDir: "./results"
 
 models:
-  - name: "claude-3-7-sonnet"
+  - name: "claude-3-7-sonnet-temp0.2"
     provider: "openai"
     modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.2
     maxTokens: 5000
-  - name: "claude-3-7-sonnet"
+  - name: "claude-3-7-sonnet-temp0.1"
     provider: "openai"
     modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.1
     maxTokens: 5000
 
 evaluationParams:
-  repeatCount: 2
+  repeatCount: 1
   concurrency: 2
   timeoutSeconds: 60
