@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai'
 import { ModelConfig } from './types'
+import { getEncoding } from 'js-tiktoken'
 
 export class CustomLLMClient {
   private client: OpenAI
@@ -41,6 +42,13 @@ export class CustomLLMClient {
 
       console.log(`Sending request to ${this.modelName}`)
 
+      // Count input tokens using tiktoken with cl100k_base (suitable for most models)
+      const encoder = getEncoding('cl100k_base')
+
+      const promptTokens = formattedMessages.reduce((sum, msg) => {
+        return sum + encoder.encode(msg.content).length
+      }, 0)
+
       const response = await this.client.chat.completions.create({
         model: this.modelName,
         messages: formattedMessages,
@@ -48,8 +56,15 @@ export class CustomLLMClient {
         max_tokens: this.maxTokens,
       })
 
+      const responseText = response.choices[0].message.content || ''
+      const responseTokens = encoder.encode(responseText).length
+
       return {
-        content: response.choices[0].message.content || '',
+        content: responseText,
+        tokenUsage: {
+          prompt: promptTokens,
+          response: responseTokens,
+        },
       }
     } catch (error) {
       console.error('Error in custom LLM client:', error)

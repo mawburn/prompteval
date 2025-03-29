@@ -38,8 +38,7 @@ export interface EvaluationResult {
   temperature?: number
   tokenUsage?: {
     prompt: number
-    completion: number
-    total: number
+    response: number
   }
   timestamp: string
 }

@@ -73,6 +73,7 @@ export class PromptEvaluator {
             response: response.content.toString(),
             latencyMs,
             temperature: config.temperature,
+            tokenUsage: response.tokenUsage,
             timestamp: new Date().toISOString(),
           })
         } catch (error) {
