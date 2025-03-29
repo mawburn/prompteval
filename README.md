@@ -1,35 +1,30 @@
 # LLM Prompt Evaluator
 
-A command-line tool for evaluating and comparing prompts across different LLM models. This tool helps you test prompt effectiveness, measure latency, and analyze response variations.
+![Test Status](https://github.com/mawburn/prompteval/actions/workflows/test.yml/badge.svg)
+
+Command-line tool for evaluating prompts across LLM models. Test effectiveness, measure latency, track tokens, and analyze response variations.
 
 ## Features
 
-- Test multiple prompts across different LLM models
-- Configure model parameters (temperature, max tokens)
-- Support for OpenAI and Anthropic models
-- Concurrent evaluation to speed up testing
-- Repeat tests to measure consistency
-- Text similarity comparison between responses
-- Multiple similarity methods (cosine, Jaccard, Levenshtein)
-- Save results as JSON for analysis
-- Environment variable support for API keys and proxies
+- Multi-model & multi-prompt testing
+- Token usage tracking for prompts and responses
+- Configurable parameters (temperature, max tokens)
+- Concurrent evaluation with repeat testing
+- Text similarity comparison (cosine, Jaccard, Levenshtein)
+- Results saved as JSON with detailed analytics
+- Environment variable support for API keys
 
 ## Installation
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd eval
-
-# Install dependencies
-npm install
-# or
 pnpm install
 ```
 
 ## Configuration
 
-Create a `config.yaml` file or use the provided example:
+Create a `config.yaml` file:
 
 ```yaml
 promptsDir: "./prompts"
@@ -41,7 +36,7 @@ models:
     modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.2
     maxTokens: 5000
-  - name: "claude-3-7-sonnet-temp0.1" 
+  - name: "claude-3-7-sonnet-temp0.1"
     provider: "openai"
     modelName: "anthropic:claude-3-7-sonnet"
     temperature: 0.1
@@ -54,12 +49,11 @@ evaluationParams:
   compareSimilarity: true
 ```
 
-Note: Model names must be unique, and all three similarity methods (cosine, jaccard, levenshtein) are calculated for each comparison.
+Note: Model names must be unique. The tool will calculate similarity using all three methods (cosine, jaccard, levenshtein) for each comparison.
 
 ### Environment Variables
 
-Create a `.env` file with. This assumes the api key is the same and being used through the proxy.
-
+Create a `.env` file:
 ```
 API_KEY=your_api_key_here
 PROXY=your_proxy_url_here  # Optional
@@ -67,9 +61,7 @@ PROXY=your_proxy_url_here  # Optional
 
 ## Prompts
 
-Create markdown files in the `prompts` directory. Each file name (without extension) will be used as the prompt ID.
-
-Example:
+Add markdown files to the `prompts` directory. Each file name becomes the prompt ID:
 ```
 # prompts/test.md
 Write a poem about artificial intelligence.
@@ -78,93 +70,50 @@ Write a poem about artificial intelligence.
 ## Usage
 
 ```bash
-# Build the project
-npm run build
-
-# Run the evaluator
-npm start -- --config config.yaml
+# Build and run
+pnpm run build
+pnpm start -- --config config.yaml
 
 # Development mode
-npm run dev -- --config config.yaml
+pnpm run dev -- --config config.yaml
 ```
 
 ## Results
 
-Results are saved to the configured output directory as a single timestamped JSON file (e.g. `results-20250328T172630.json`).
+Results are saved as timestamped JSON files (e.g., `results-20250328T172630.json`):
 
-The output file contains:
-
-### Prompts
-Results organized by prompt ID, each containing arrays of evaluation results.
-
-Each result includes:
-- Unique ID (generated with nanoid)
-- Prompt ID
-- Model name
-- Response text
-- Latency in milliseconds
-- Timestamp
-- Temperature value used for generation
-- Optional token usage statistics
+### Prompt Results
+Each evaluation result includes:
+- Unique ID, prompt ID, model name
+- Complete response text
+- Latency in milliseconds, timestamp, temperature
+- Token counts for both prompt and response
 
 ### Similarity Matrix
-A single combined similarity matrix at the root level:
-- Contains similarity comparisons between ALL responses across ALL prompts
-- Includes:
-  - Complete comparison structure with cross-prompt comparisons
-  - Comparisons use keys in the format: `responseA_id_to_responseB_id`
-  - Each comparison includes scores for all similarity methods:
-    ```json
-    "ezcsy_to_n5pb3": {
-      "cosine": 0.60573,
-      "jaccard": 0.82123,
-      "levenshtein": 0.91000
-    }
-    ```
-- Each pair of responses is compared only once (no redundant calculations)
-- Self-comparisons (with score 1.0) are not included
-
-#### Similarity Methods
-
-The evaluator calculates all three text similarity algorithms for each comparison:
-
-**Cosine Similarity**
-- Represents texts as word frequency vectors and measures the cosine of the angle between them
-- Focuses on word frequency patterns rather than exact matches
-- Scores range from 0 (completely different) to 1 (identical)
-- Best for comparing longer texts with similar vocabulary but different expression
-
-**Jaccard Similarity**
-- Measures similarity based on the ratio of shared words to total unique words
-- Calculates: intersection size / union size of word sets
-- Scores range from 0 (no words in common) to 1 (identical word sets)
-- Useful for comparing similarity of topics and concepts, ignoring word frequency
-
-**Levenshtein Similarity**
-- Based on edit distance (number of operations to transform one text to another)
-- Normalized to produce scores from 0 (completely different) to 1 (identical)
-- Sensitive to character-level differences, word order, and text structure
-- Best for detecting minor variations and similar phrasings
+Pairwise comparisons between responses showing:
+- Cosine similarity (word frequency patterns)
+- Jaccard similarity (shared word ratio)
+- Levenshtein similarity (edit distance)
+- Average of all methods
 
 ### Metadata
-Information about the evaluation run:
-- Evaluation start and end timestamps
-- Prompt count
-- Model count
-- Repeat count
+Evaluation timestamps, prompt count, model count, and configuration details.
+
+## Technical Implementation
+
+- OpenAI API client for model integration
+- js-tiktoken for accurate token counting
+- Multiple similarity algorithms
+- Concurrent processing for better performance
 
 ## Development
 
 ```bash
-# Lint code
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Format code
-npm run format
-
-# Check formatting
-npm run format:check
+pnpm run lint        # Check code
+pnpm run lint:fix    # Fix issues
+pnpm run format      # Format code
+pnpm run typecheck   # Check types
+pnpm test           # Run tests
+pnpm test:watch     # Run tests in watch mode
+pnpm test:coverage  # Run tests with coverage
 ```
