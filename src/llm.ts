@@ -9,7 +9,6 @@ export class CustomLLMClient {
   private maxTokens?: number
 
   constructor(modelConfig: ModelConfig) {
-    // Extract the base URL without the endpoint path
     let baseURL = modelConfig.proxyUrl || ''
     if (baseURL.endsWith('/chat/completions')) {
       baseURL = baseURL.replace('/chat/completions', '')
@@ -19,12 +18,11 @@ export class CustomLLMClient {
     console.log(`Original proxy URL: ${modelConfig.proxyUrl || 'none'}`)
     console.log(`Adjusted base URL: ${baseURL}`)
 
-    // Create a direct OpenAI client with custom configuration
     this.client = new OpenAI({
       apiKey: modelConfig.apiKey || 'dummy-key',
-      baseURL: baseURL || undefined, // Use undefined if empty string
+      baseURL: baseURL || undefined,
       defaultHeaders: {
-        Authorization: `Bearer ${modelConfig.apiKey || 'dummy-key'}`,
+        'Cache-Control': 'no-cache',
       },
     })
 

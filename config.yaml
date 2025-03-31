@@ -2,19 +2,19 @@ promptsDir: "./prompts"
 outputDir: "./results"
 
 models:
-  - name: "claude-3-7-sonnet-temp0.2"
+  - name: "gpt-4o-temp0.2"
     provider: "openai"
-    modelName: "anthropic:claude-3-7-sonnet"
+    modelName: "gpt-4o"
     temperature: 0.2
     maxTokens: 5000
-  - name: "claude-3-7-sonnet-temp0.1"
+  - name: "gpt-4o-temp0.1"
     provider: "openai"
-    modelName: "anthropic:claude-3-7-sonnet"
+    modelName: "gpt-4o"
     temperature: 0.1
     maxTokens: 5000
-  - name: "claude-3-7-sonnet-temp0"
+  - name: "o3-mini-temp0"
     provider: "openai"
-    modelName: "anthropic:claude-3-7-sonnet"
+    modelName: "o3-mini"
     temperature: 0.0
     maxTokens: 5000
 

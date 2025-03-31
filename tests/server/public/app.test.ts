@@ -7,12 +7,10 @@ describe('UI Frontend', () => {
   const originalDocument = global.document
   let appJsContent: string
   
-  // Load the app.js file content for testing
   beforeEach(() => {
     const appJsPath = path.join(__dirname, '../../../src/server/public/app.js')
     appJsContent = fs.readFileSync(appJsPath, 'utf-8')
     
-    // Mock DOM elements and globals
     global.document = {
       getElementById: vi.fn().mockImplementation((id) => {
         if (id === 'result-select') {
@@ -183,6 +181,13 @@ describe('UI Frontend', () => {
     expect(appJsContent).toContain('closeButton.className = \'close-modal\'')
     expect(appJsContent).toContain('document.body.appendChild(modal)')
   })
+
+  it('should handle color coding for similarity values', () => {
+    expect(appJsContent).toContain('if (score === 1.0)')
+    expect(appJsContent).toContain('backgroundColor = \'hsl(240, 85%, 45%)\'')
+    expect(appJsContent).toContain('const hue = Math.round((Math.min(score, 0.99) / 0.99) * 120)')
+    expect(appJsContent).toContain('backgroundColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`')
+  })
 });
 
 describe('UI HTML Structure', () => {
@@ -202,7 +207,6 @@ describe('UI HTML Structure', () => {
   it('should have the right column headers', () => {
     expect(indexHtmlContent).toContain('<th>Prompt</th>')
     expect(indexHtmlContent).toContain('<th>Response</th>')
-    // Should not have the weight column anymore
     expect(indexHtmlContent).not.toContain('<th>Weight')
   })
   
@@ -290,5 +294,14 @@ describe('UI CSS Styling', () => {
     expect(cssContent).not.toContain('.similarity-high')
     expect(cssContent).not.toContain('.similarity-medium')
     expect(cssContent).not.toContain('.similarity-low')
+  })
+
+  it('should style the fixed column in similarity matrix', () => {
+    expect(cssContent).toContain('.fixed-column')
+    expect(cssContent).toContain('.top-left')
+  })
+
+  it('should provide appropriate styling for missing comparisons', () => {
+    expect(cssContent).toContain('.missing-comparison')
   })
 })

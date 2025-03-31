@@ -18,7 +18,7 @@ Command-line tool for evaluating prompts across LLM models. Test effectiveness, 
 
 ```bash
 git clone <repository-url>
-cd eval
+cd prompteval
 pnpm install
 ```
 
@@ -56,7 +56,7 @@ Note: Model names must be unique. The tool will calculate similarity using all t
 Create a `.env` file:
 ```
 API_KEY=your_api_key_here
-PROXY=your_proxy_url_here  # Optional
+PROXY=your_proxy_url_here
 ```
 
 ## Prompts
@@ -71,7 +71,7 @@ Write a poem about artificial intelligence.
 
 Run the command-line evaluator:
 ```bash
-pnpm run dev
+pnpm run compare
 ```
 
 Start the UI server:
