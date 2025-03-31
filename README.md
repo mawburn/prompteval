@@ -69,18 +69,21 @@ Write a poem about artificial intelligence.
 
 ## Usage
 
+Run the command-line evaluator:
 ```bash
-# Build and run
-pnpm run build
-pnpm start -- --config config.yaml
-
-# Development mode
-pnpm run dev -- --config config.yaml
+pnpm run dev
 ```
+
+Start the UI server:
+```bash
+pnpm run ui
+```
+
+The UI is available at http://localhost:3000 and provides a web interface for viewing evaluation results and prompt details.
 
 ## Results
 
-Results are saved as timestamped JSON files (e.g., `results-20250328T172630.json`):
+Results are saved as timestamped JSON files (e.g., `results-20250328T172630.json`) and can be viewed in the UI:
 
 ### Prompt Results
 Each evaluation result includes:
